@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>จดออเดอร์หน้าร้าน</title>
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6eefc;--card:#fff;--ink:#46286b;--mute:#8466aa;--line:#e9d6f5;--acc:#ffb6dc;--accink:#4a1a47;--ok:#1f8a5b;--warn:#c9472f;--blue:#2a6fb0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2a1a3f;--card:#3a2656;--ink:#fdeefe;--mute:#cdb3e6;--line:#58397d}}
+:root[data-theme="dark"]{--bg:#2a1a3f;--card:#3a2656;--ink:#fdeefe;--mute:#cdb3e6;--line:#58397d}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background-image:radial-gradient(var(--line) 1.5px,transparent 1.5px);background-size:22px 22px;margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 Mali,Prompt,"Noto Sans Thai",system-ui,sans-serif;padding-bottom:84px}
+.wrap{max-width:560px;margin:0 auto;padding:12px}
+h2{font-size:17px;margin:14px 0 8px}
+input,select,button{font:inherit;color:inherit}
+input,select{width:100%;padding:11px 12px;border:2px solid var(--line);border-radius:16px;background:var(--card);min-height:46px}
+input:focus,select:focus,button:focus-visible{outline:3px solid var(--acc);outline-offset:1px}
+button{border:0;border-radius:18px;padding:12px 14px;min-height:46px;background:var(--card);border:1.5px solid var(--line);cursor:pointer}
+.pri{box-shadow:0 3px 0 #e48fc0;background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+.dng{color:var(--warn)}
+button:active{transform:scale(.95)}
+nav button{font-size:13px}
+.card{box-shadow:0 4px 0 var(--line);background:var(--card);border:2px solid var(--line);border-radius:24px;padding:12px;margin-bottom:10px}
+.menus{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.menus button{text-align:left;padding:14px 12px;min-height:72px;border-radius:22px;box-shadow:0 4px 0 var(--line)}
+.menus b{display:block;font-weight:600}.menus span{color:var(--mute);font-size:14px}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.row>.fit{flex:0 0 auto}
+.line{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px dashed var(--line)}
+.line:first-child{border-top:0}.note{color:var(--warn);font-size:14px}.sub{color:var(--mute);font-size:14px}
+.total{font-size:20px;font-weight:600}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1.5px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;border:0;border-radius:0;min-height:58px;background:none;color:var(--mute)}
+nav button.on{color:var(--ink);font-weight:600;box-shadow:inset 0 3px 0 var(--acc)}
+.badge{background:var(--acc);color:var(--accink);border-radius:20px;padding:0 7px;font-size:13px;margin-left:4px}
+.sel{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.sel label{font-size:13px;color:var(--mute);display:block;margin-bottom:3px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:6px}
+.chips button{white-space:nowrap;min-height:38px;padding:6px 12px;border-radius:20px}
+.chips button.on{background:var(--ink);color:var(--bg)}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;z-index:9}
+.sheet>div{background:var(--bg);width:100%;max-width:560px;margin:0 auto;border-radius:30px 30px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px));max-height:92%;overflow:auto}
+.chk{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px dashed var(--line)}
+.chk input{width:24px;min-height:24px;height:24px;flex:0 0 24px}
+.qty{display:flex;align-items:center;gap:10px}.qty button{width:48px;flex:0 0 48px;font-size:22px}.qty b{min-width:32px;text-align:center;font-size:20px}
+.empty{text-align:center;color:var(--mute);padding:24px 8px}
+.pill{display:inline-block;padding:2px 12px;border-radius:20px;font-size:14px;background:var(--acc);color:var(--accink);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<nav id="nav"></nav>
+<div id="modal"></div>
+<script>
+const KEY='market-orders-v1';
+let S={menus:[{id:1,name:'เคบับ เล็ก',price:40,addons:[]},{id:2,name:'เคบับ ใหญ่',price:60,addons:[]}],
+ payOpts:['ยังไม่ได้จ่าย','โอนจ่ายแล้วเดี๋ยวมาเอา'],workOpts:['กำลังทำ','ทำเสร็จแล้ว'],
+ orders:[],draft:{name:'',items:[]},seq:1,uid:10};
+try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+S.orders.forEach(o=>{if(!o.date){const t=new Date(o.time);o.date=new Date(t-t.getTimezoneOffset()*6e4).toISOString().slice(0,10)}});
+let day=today(),tab='take',filter='all',armed=null,sheet=null;
+const thDate=d=>new Date(d+'T00:00').toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+const dateRow=()=>`<div class="row" style="margin:12px 0 4px"><span class="sub fit">วันที่ขาย</span><input type="date" value="${day}" onchange="day=this.value||today();render()"><button class="fit" onclick="day=today();render()">วันนี้</button></div>`;
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=s=>document.querySelector(s);
+const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>Number(n).toLocaleString('th-TH');
+const lineTotal=i=>(i.price+i.addons.reduce((a,x)=>a+x.price,0))*i.qty;
+const orderTotal=o=>o.items.reduce((a,i)=>a+lineTotal(i),0);
+const itemHTML=(i,oid,k,canDel)=>`<div class="line"><div><b>${esc(i.name)}</b> × ${i.qty}
+${i.addons.length?`<div class="sub">+ ${i.addons.map(a=>esc(a.name)).join(', ')}</div>`:''}
+${i.note?`<div class="note">หมายเหตุ: ${esc(i.note)}</div>`:''}</div>
+<div style="text-align:right;white-space:nowrap">${fmt(lineTotal(i))}฿${oid!==undefined?`<br><button style="min-height:34px;padding:2px 10px" onclick="editItem('${oid}',${k})">แก้ไข</button>${canDel?` <button class="dng" style="min-height:34px;padding:2px 10px" onclick="delItem('${oid}',${k})">ลบ</button>`:''}`:''}</div></div>`;
+const opts=(list,v)=>list.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('');
+
+function render(){
+ document.title=S.shop||'จดออเดอร์หน้าร้าน';
+ $('#nav').innerHTML=[['take','<span style="font-size:20px;display:block;line-height:1.2">📝</span>จดออเดอร์'],['list','<span style="font-size:20px;display:block;line-height:1.2">🧾</span>ออเดอร์'],['sum','<span style="font-size:20px;display:block;line-height:1.2">🌸</span>สรุป'],['set','<span style="font-size:20px;display:block;line-height:1.2">⚙️</span>ตั้งค่า']].map(([k,l])=>
+  `<button class="${tab===k?'on':''}" onclick="go('${k}')">${l}${k==='list'&&S.orders.filter(o=>o.work!==S.workOpts[S.workOpts.length-1]).length?`<span class="badge">${S.orders.filter(o=>o.work!==S.workOpts[S.workOpts.length-1]).length}</span>`:''}</button>`).join('');
+ $('#app').innerHTML=tab==='take'?takeView():tab==='list'?listView():tab==='sum'?sumView():setView();
+}
+function go(t){tab=t;armed=null;render();scrollTo(0,0)}
+
+function takeView(){
+ const d=S.draft,tot=d.items.reduce((a,i)=>a+lineTotal(i),0);
+ return `${S.shop?`<h1 style="font-size:22px;margin:6px 0 0">${esc(S.shop)}</h1>`:''}${dateRow()}<h2>🍢 เลือกเมนู</h2>
+ <div class="menus">${S.menus.map(m=>`<button onclick="openSheet(${m.id})"><b>${esc(m.name)}</b><span>${fmt(m.price)}฿</span></button>`).join('')}</div>
+ ${S.menus.length?'':'<div class="empty">ยังไม่มีเมนู ไปเพิ่มที่แท็บ “ตั้งค่า”</div>'}
+ <h2>🛍️ ออเดอร์ตอนนี้</h2>
+ <div class="card">
+  <input placeholder="ชื่อลูกค้า / เลขคิว" value="${esc(d.name)}" oninput="S.draft.name=this.value;save()">
+  ${d.items.length?d.items.map((i,k)=>itemHTML(i,'d',k,true)).join(''):'<div class="empty">แตะเมนูด้านบนเพื่อเพิ่มรายการ</div>'}
+  <div class="row" style="margin-top:8px"><span class="total">รวม ${fmt(tot)}฿</span>
+  <button class="pri" ${d.items.length?'':'disabled'} onclick="saveOrder()">บันทึกออเดอร์ ✨</button></div>
+ </div>`;
+}
+function openSheet(id){const m=gm(id);sheet={name:m.name,price:m.price,adds:m.addons,qty:1,sel:[],note:'',t:null};drawSheet()}
+function editItem(oid,k){
+ const it=(oid==='d'?S.draft:S.orders.find(o=>o.id==oid)).items[k];
+ const m=S.menus.find(x=>x.name===it.name),adds=[...(m?m.addons:[])];
+ it.addons.forEach(a=>{if(!adds.some(x=>x.name===a.name))adds.push(a)});
+ sheet={name:it.name,price:it.price,adds,qty:it.qty,sel:it.addons.map(a=>adds.findIndex(x=>x.name===a.name)),note:it.note,t:{oid,k}};drawSheet();
+}
+function drawSheet(){
+ const s=sheet;
+ $('#modal').innerHTML=`<div class="sheet" onclick="if(event.target===this)closeSheet()"><div>
+ <h2 style="margin-top:0">${esc(s.name)}${s.t?' (แก้ไข)':''}</h2>
+ <div class="sel"><div><label>ราคา (฿)</label><input id="sp" type="number" inputmode="decimal" value="${s.price}"></div>
+ <div><label>จำนวน</label><div class="qty"><button onclick="qtyd(-1)">−</button><b>${s.qty}</b><button onclick="qtyd(1)">+</button></div></div></div>
+ ${s.adds.length?`<h2>แอดออน</h2>`+s.adds.map((a,k)=>`<label class="chk"><input type="checkbox" ${s.sel.includes(k)?'checked':''} onchange="tglAdd(${k})"><span style="flex:1">${esc(a.name)}</span><span>+${fmt(a.price)}฿</span></label>`).join(''):''}
+ <h2>หมายเหตุ</h2><input id="sn" placeholder="เช่น ไม่ใส่หัวหอม" value="${esc(s.note||'')}" oninput="sheet.note=this.value">
+ <div class="row" style="margin-top:12px"><button onclick="closeSheet()">ยกเลิก</button><button class="pri" onclick="addItem()">${s.t?'บันทึกการแก้ไข':'เพิ่มลงออเดอร์'}</button></div></div></div>`;
+}
+function qtyd(n){sheet.price=$('#sp').value;sheet.qty=Math.max(1,sheet.qty+n);drawSheet()}
+function tglAdd(k){const i=sheet.sel.indexOf(k);i<0?sheet.sel.push(k):sheet.sel.splice(i,1)}
+function closeSheet(){sheet=null;$('#modal').innerHTML=''}
+function addItem(){
+ const it={name:sheet.name,price:Number($('#sp').value)||0,qty:sheet.qty,note:(sheet.note||'').trim(),addons:sheet.sel.map(k=>sheet.adds[k])};
+ if(sheet.t){const {oid,k}=sheet.t;(oid==='d'?S.draft:S.orders.find(o=>o.id==oid)).items[k]=it}else S.draft.items.push(it);
+ save();closeSheet();render();
+}
+function delItem(oid,k){const o=oid==='d'?S.draft:S.orders.find(x=>x.id==oid);o.items.splice(k,1);save();render()}
+function saveOrder(){
+ const n=Math.max(0,...S.orders.filter(o=>o.date===day).map(o=>o.no))+1;
+ S.orders.unshift({id:S.uid++,no:n,name:S.draft.name.trim(),items:S.draft.items,pay:S.payOpts[0]||'',work:S.workOpts[0]||'',time:Date.now(),date:day});
+ S.draft={name:'',items:[]};save();tab='list';render();
+}
+
+function listView(){
+ const done=S.workOpts[S.workOpts.length-1];
+ const L=S.orders.filter(o=>o.date===day&&(filter==='all'?true:filter==='open'?o.work!==done:o.work===done));
+ return `${dateRow()}<h2>ออเดอร์วันที่ ${thDate(day)}</h2>
+ <div class="chips">${[['all','ทั้งหมด'],['open','ยังไม่เสร็จ'],['done','เสร็จแล้ว']].map(([k,l])=>`<button class="${filter===k?'on':''}" onclick="filter='${k}';render()">${l}</button>`).join('')}</div>
+ ${L.length?L.map(o=>`<div class="card">
+  <div class="row"><span class="pill fit">#${o.no}</span><input placeholder="ชื่อลูกค้า" value="${esc(o.name)}" onchange="upd(${o.id},'name',this.value)"></div>
+  ${o.items.map((i,k)=>itemHTML(i,o.id,k,o.items.length>1)).join('')}
+  <div class="total" style="margin-top:6px">รวม ${fmt(orderTotal(o))}฿</div>
+  <div class="row" style="margin-top:8px"><span class="sub fit">วันที่ขาย</span><input type="date" value="${o.date}" onchange="upd(${o.id},'date',this.value||'${o.date}')"></div>
+  <div class="sel"><div><label>การชำระเงิน</label><select onchange="upd(${o.id},'pay',this.value)">${opts(S.payOpts.includes(o.pay)?S.payOpts:[o.pay,...S.payOpts],o.pay)}</select></div>
+  <div><label>สถานะการทำ</label><select onchange="upd(${o.id},'work',this.value)">${opts(S.workOpts.includes(o.work)?S.workOpts:[o.work,...S.workOpts],o.work)}</select></div></div>
+  <button class="dng" style="margin-top:8px;width:100%" onclick="delOrder(${o.id})">${armed===o.id?'แตะอีกครั้งเพื่อยืนยันลบ':'ลบออเดอร์'}</button>
+ </div>`).join(''):'<div class="empty">ยังไม่มีออเดอร์ในวันที่เลือก</div>'}`;
+}
+function upd(id,k,v){S.orders.find(o=>o.id===id)[k]=v;save();render()}
+function delOrder(id){if(armed===id){S.orders=S.orders.filter(o=>o.id!==id);armed=null;save()}else armed=id;render()}
+
+function sumView(){
+ const L=S.orders.filter(o=>o.date===day),unp=S.payOpts[0];
+ const tot=L.reduce((a,o)=>a+orderTotal(o),0),due=L.filter(o=>o.pay===unp).reduce((a,o)=>a+orderTotal(o),0);
+ const by={};L.forEach(o=>o.items.forEach(i=>{const b=by[i.name]||(by[i.name]={q:0,s:0});b.q+=i.qty;b.s+=lineTotal(i)}));
+ const days={};S.orders.forEach(o=>{const d=days[o.date]||(days[o.date]={n:0,s:0});d.n++;d.s+=orderTotal(o)});
+ return `${dateRow()}<div class="card"><div class="sub">ยอดขายวันที่ ${thDate(day)}</div><div class="total" style="font-size:32px">${fmt(tot)}฿</div>
+ <div class="sub">${L.length} ออเดอร์ / รับเงินแล้ว ${fmt(tot-due)}฿ / ยังไม่ได้จ่าย ${fmt(due)}฿</div></div>
+ <h2>🍡 แยกตามเมนู</h2><div class="card">${Object.keys(by).length?Object.entries(by).sort((a,b)=>b[1].s-a[1].s).map(([n,b])=>`<div class="line"><span>${esc(n)} × ${b.q}</span><b>${fmt(b.s)}฿</b></div>`).join(''):'<div class="empty">ยังไม่มีข้อมูล</div>'}</div>
+ <h2>ย้อนหลังรายวัน (แตะเพื่อดูวันนั้น)</h2><div class="card">${Object.keys(days).sort().reverse().map(d=>`<button class="line" style="width:100%;border:0;border-top:1px dashed var(--line);border-radius:0;background:none;min-height:44px" onclick="day='${d}';render()"><span>${thDate(d)}${d===day?' ✓':''}</span><span>${days[d].n} ออเดอร์, <b>${fmt(days[d].s)}฿</b></span></button>`).join('')||'<div class="empty">ยังไม่มีข้อมูล</div>'}</div>`;
+}
+const bkMsg=t=>{const e=$('#bkmsg');if(e)e.textContent=t};
+let impArmed=false;
+function exportData(){
+ const t=$('#bk');t.value=JSON.stringify(S);t.focus();t.select();
+ let ok=false;try{ok=document.execCommand('copy')}catch(e){}
+ if(ok)return bkMsg('คัดลอกข้อมูลสำรองแล้ว นำไปวางเก็บไว้ได้เลย');
+ try{navigator.clipboard.writeText(t.value).then(()=>bkMsg('คัดลอกข้อมูลสำรองแล้ว นำไปวางเก็บไว้ได้เลย'),()=>bkMsg('คัดลอกอัตโนมัติไม่ได้ แตะค้างในกล่อง เลือกทั้งหมด แล้วคัดลอก'))}catch(e){bkMsg('คัดลอกอัตโนมัติไม่ได้ แตะค้างในกล่อง เลือกทั้งหมด แล้วคัดลอก')}
+}
+function importData(b){
+ let d;try{d=JSON.parse($('#bk').value)}catch(e){return bkMsg('อ่านข้อมูลไม่ได้ ตรวจสอบว่าวางครบทั้งหมด')}
+ if(!d||!Array.isArray(d.orders)||!Array.isArray(d.menus))return bkMsg('ข้อมูลนี้ไม่ใช่ข้อมูลสำรองของแอพนี้');
+ if(!impArmed){impArmed=true;b.textContent='แตะอีกครั้งเพื่อยืนยัน';return bkMsg('ข้อมูลปัจจุบันในเครื่องจะถูกแทนที่ทั้งหมด')}
+ impArmed=false;S=Object.assign(S,d);S.orders.forEach(o=>{if(!o.date)o.date=today()});save();render();bkMsg('นำเข้าข้อมูลเรียบร้อย')
+}
+function setView(){
+ const optBox=(key,title)=>`<h2>${title}</h2><div class="card">${S[key].map((o,k)=>`<div class="row" style="margin-bottom:8px"><input value="${esc(o)}" onchange="S.${key}[${k}]=this.value.trim()||S.${key}[${k}];save()"><button class="dng fit" onclick="delOpt('${key}',${k})">ลบ</button></div>`).join('')}
+ <div class="row"><input id="n_${key}" placeholder="เพิ่มตัวเลือกใหม่"><button class="pri fit" onclick="addOpt('${key}')">เพิ่ม</button></div></div>`;
+ return `<h2>ชื่อร้าน</h2><div class="card"><input placeholder="ใส่ชื่อร้านของคุณ" value="${esc(S.shop||'')}" onchange="S.shop=this.value.trim();save();render()"></div><h2>เมนู</h2>${S.menus.map(m=>`<div class="card">
+  <div class="row"><input value="${esc(m.name)}" onchange="mu(${m.id},'name',this.value)"><input type="number" inputmode="decimal" value="${m.price}" style="max-width:96px;flex:0 0 96px" onchange="mu(${m.id},'price',Number(this.value)||0)"></div>
+  <div class="sub" style="margin:8px 0 4px">แอดออน</div>
+  ${m.addons.map((a,k)=>`<div class="row" style="margin-bottom:6px"><input value="${esc(a.name)}" onchange="ma(${m.id},${k},'name',this.value)"><input type="number" inputmode="decimal" value="${a.price}" style="max-width:80px;flex:0 0 80px" onchange="ma(${m.id},${k},'price',Number(this.value)||0)"><button class="dng fit" onclick="delAdd(${m.id},${k})">ลบ</button></div>`).join('')}
+  <div class="row"><input id="an${m.id}" placeholder="ชื่อแอดออน"><input id="ap${m.id}" type="number" inputmode="decimal" placeholder="ราคา" style="max-width:80px;flex:0 0 80px"><button class="fit" onclick="addAdd(${m.id})">เพิ่ม</button></div>
+  <button class="dng" style="margin-top:10px;width:100%" onclick="delMenu(${m.id})">${armed==='m'+m.id?'แตะอีกครั้งเพื่อยืนยันลบเมนู':'ลบเมนูนี้'}</button></div>`).join('')}
+ <div class="card"><div class="row"><input id="nm" placeholder="ชื่อเมนูใหม่"><input id="np" type="number" inputmode="decimal" placeholder="ราคา" style="max-width:96px;flex:0 0 96px"></div>
+ <button class="pri" style="width:100%;margin-top:8px" onclick="addMenu()">เพิ่มเมนู</button></div>
+ ${optBox('payOpts','ตัวเลือกสถานะการชำระเงิน (ตัวแรก = ยังไม่จ่าย)')}${optBox('workOpts','ตัวเลือกสถานะการทำ (ตัวสุดท้าย = เสร็จแล้ว)')}
+ <h2>สำรอง / กู้คืนข้อมูล</h2><div class="card">
+ <div class="sub" style="margin-bottom:8px">กด “สร้างข้อมูลสำรอง” แล้ววางเก็บไว้ในโน้ตหรือแชตตัวเอง เปลี่ยนเครื่องแล้ววางกลับในกล่องนี้ กด “นำเข้า”</div>
+ <textarea id="bk" rows="5" style="width:100%;padding:10px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:13px monospace" placeholder="ข้อมูลสำรองจะขึ้นที่นี่ หรือวางข้อมูลที่ต้องการนำเข้า"></textarea>
+ <div class="row" style="margin-top:8px"><button class="pri" onclick="exportData()">สร้างข้อมูลสำรอง</button><button onclick="importData(this)">นำเข้า</button></div>
+ <div id="bkmsg" class="sub" style="margin-top:8px"></div></div>`;
+}
+const gm=id=>S.menus.find(m=>m.id===id);
+function mu(id,k,v){gm(id)[k]=k==='name'?(v.trim()||gm(id).name):v;save()}
+function ma(id,i,k,v){gm(id).addons[i][k]=v;save()}
+function addAdd(id){const n=$('#an'+id).value.trim();if(!n)return;gm(id).addons.push({name:n,price:Number($('#ap'+id).value)||0});save();render()}
+function delAdd(id,k){gm(id).addons.splice(k,1);save();render()}
+function addMenu(){const n=$('#nm').value.trim();if(!n)return;S.menus.push({id:S.uid++,name:n,price:Number($('#np').value)||0,addons:[]});save();render()}
+function delMenu(id){if(armed==='m'+id){S.menus=S.menus.filter(m=>m.id!==id);armed=null;save()}else armed='m'+id;render()}
+function addOpt(key){const v=$('#n_'+key).value.trim();if(!v)return;S[key].push(v);save();render()}
+function delOpt(key,k){if(S[key].length<2)return;S[key].splice(k,1);save();render()}
+render();
+</script>
+</body>
+</html>
